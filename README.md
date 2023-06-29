@@ -51,7 +51,7 @@ This repository is the sample solution for MLOps Marathon 2023.
 
         ```bash
         export MLFLOW_TRACKING_URI=http://localhost:5000
-        python src/model_trainer.py --phase-id phase-1 --prob-id prob-1
+        python src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --model-name xgb
         ```
 
     -   Register model: Go to mlflow UI at <http://localhost:5000> and register a new model named **phase-1_prob-1_model-1**
