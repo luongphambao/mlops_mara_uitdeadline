@@ -1,0 +1,15 @@
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm
+python3 src/model_trainer.py --phase-id phase-1 --prob-id prob-1 --add-captured-data true --model-name lightgbm

@@ -1,0 +1,22 @@
+version: "3.7"
+services:
+  model_predictor:
+    image: ${IMAGE_NAME}:${IMAGE_TAG}
+    restart: on-failure
+    volumes:
+      - ../../data:/sample_solution/data
+      - ../../data/raw_data:/sample_solution/data/raw_data
+      - ../../data/train_data:/sample_solution/data/train_data
+      - ../../data/model_config:/sample_solution/data/model_config
+      - ../../data/captured_data:/sample_solution/data/captured_data
+      - ../../features/:/sample_solution/features
+    ports:
+      - ${PORT}:8000
+    environment:
+      MODEL_CONFIG_PATH_PROB1: ${MODEL_CONFIG_PATH_PROB1}
+      MODEL_CONFIG_PATH_PROB2: ${MODEL_CONFIG_PATH_PROB2}
+      MLFLOW_TRACKING_URI: http://host.docker.internal:5000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    entrypoint: /bin/sh -c "python3 src/save_model_serving.py && BENTOML_CONFIG=configuration.yaml bentoml serve service:svc  --port 8000"
+    # entrypoint: /bin/sh -c "python src/model_predictor.py --config-path1 ${MODEL_CONFIG_PATH_PROB1} --config-path2 ${MODEL_CONFIG_PATH_PROB2} --port 8000"

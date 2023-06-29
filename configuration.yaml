@@ -1,0 +1,10 @@
+runners:
+  batching:
+    enabled: true
+    max_batch_size: 150000
+    max_latency_ms: 200
+api_server:
+  workers: 24
+  traffic:
+    max_concurrency: 300
+    timeout: 10
