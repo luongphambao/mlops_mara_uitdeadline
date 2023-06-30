@@ -35,6 +35,41 @@ from sklearn.preprocessing import (
     RobustScaler,
 )
 from sklearn.model_selection import train_test_split
+
+
+def auc_custom(confidence_min,confidence_max,y_test,y_pred,confidence):
+    """
+    get auc with confidence threshold
+    input: 
+        confidence_min: min confidence
+        confidence_max: max confidence
+        y_test: y_test
+        y_pred: y_pred
+        confidence: confidence
+    output:
+        auc_score_confidence: auc score with confidence threshold
+    """
+    y_test=y_test.to_numpy()
+    y_pred_confidence=y_pred[(confidence_min<=confidence) & (confidence<=confidence_max)]
+    y_test_confidence=y_test[(confidence_min<=confidence) & (confidence<=confidence_max)]
+    auc_score_confidence=roc_auc_score(y_test_confidence, y_pred_confidence)
+    f1_score_confidence=f1_score(y_test_confidence, y_pred_confidence)
+    count_correct_class_0=0
+    count_correct_class_1=0
+    count_class_0=0
+    count_class_1=0
+    for i in range(len(y_pred_confidence)):
+        if y_test_confidence[i]==0:
+            count_class_0+=1
+            if y_pred_confidence[i]==0:
+                count_correct_class_0+=1
+        else:
+            count_class_1+=1
+            if y_pred_confidence[i]==1:
+                count_correct_class_1+=1
+    percent_0=count_correct_class_0/count_class_0
+    percent_1=count_correct_class_1/count_class_1
+    return auc_score_confidence,f1_score_confidence,percent_0,percent_1
 class ModelTrainer:
     
     EXPERIMENT_NAME=None
@@ -165,17 +200,19 @@ class ModelTrainer:
 
         model = ModelTrainer.get_model(model_name)
         model.fit(train_x, train_y)
-        train_predictions = model.predict(train_x)
-        #print(train_predictions)
-        auc_scores_train=roc_auc_score(train_y,train_predictions)
-        print(auc_scores_train)
         predictions = model.predict(test_x)
+        predictions_uncertain = model.predict_proba(test_x)
+        confidence = np.max(predictions_uncertain, axis=1)
+        #save auc with confidence>0.9
+
         auc_scores = roc_auc_score(test_y, predictions)
         f1_scores=f1_score(test_y, predictions)
         precision_scores=precision_score(test_y, predictions)
         recall_scores=recall_score(test_y, predictions)
-
-        metrics = {"test_auc": auc_scores,"f1_score":f1_scores,"precision_score":precision_scores,"recall_score":recall_scores}
+        auc_score_09,f1_score_09,percent_0_09,percent_1_09=auc_custom(0.9,1,test_y,predictions,confidence)
+        auc_score_08,f1_score_08,percent_0_08,percent_1_08=auc_custom(0.8,0.9,test_y,predictions,confidence)
+        auc_score_07,f1_score_07,percent_0_07,percent_1_07=auc_custom(0.7,0.8,test_y,predictions,confidence)
+        metrics = {"test_auc": auc_scores,"f1_score":f1_scores,"precision_score":precision_scores,"recall_score":recall_scores,"auc_score_09":auc_score_09,"f1_score_09":f1_score_09,"percent_0_09":percent_0_09,"percent_1_09":percent_1_09,"auc_score_08":auc_score_08,"f1_score_08":f1_score_08,"percent_0_08":percent_0_08,"percent_1_08":percent_1_08,"auc_score_07":auc_score_07,"f1_score_07":f1_score_07,"percent_0_07":percent_0_07,"percent_1_07":percent_1_07}
         logging.info(f"metrics: {metrics}")
 
         # mlflow log
