@@ -50,8 +50,8 @@ class ModelPredictor:
         #self.model = mlflow.pyfunc.load_model(model_uri)
         self.model = mlflow.sklearn.load_model(model_uri)
         self.scaler=pickle.load(open("features/robust_scaler_phase-1_prob-1.pkl", 'rb')) if self.prob_config.prob_id=="prob-1" else pickle.load(open("features/robust_scaler_phase-1_prob-2.pkl", 'rb'))
-        self.test_data=pd.read_csv("data/label_data_phase1_prob1.csv") if self.prob_config.prob_id=="prob-1" else pd.read_csv("data/label_data_phase1_prob2.csv")
-        self.submit_data=pd.read_csv("data/data_phase1_prob1.csv") if self.prob_config.prob_id=="prob-1" else pd.read_csv("data/data_phase1_prob2.csv")
+        #self.test_data=pd.read_csv("data/label_data_phase1_prob1.csv") if self.prob_config.prob_id=="prob-1" else pd.read_csv("data/label_data_phase1_prob2.csv")
+        #self.submit_data=pd.read_csv("data/data_phase1_prob1.csv") if self.prob_config.prob_id=="prob-1" else pd.read_csv("data/data_phase1_prob2.csv")
     def detect_drift(self, feature_df) -> int:
         # watch drift between coming requests and training data
         #time.sleep(0.02)
@@ -128,19 +128,19 @@ class ModelPredictor:
             json.dump(result_dict,f)
         return result_dict
 if __name__=="__main__":
-    csv_path="data/data_phase1_prob1.csv"
+    csv_path="data/data_phase1_prob2_model-3.csv"
     df = pd.read_csv(csv_path)
     model_name="model-3.yaml"
-    model_config_path="data/model_config/phase-1/prob-1/"+model_name
-    # predictor=ModelPredictor(model_config_path)
-    # predictor.predict_df(df,"data/data_phase1_prob1_"+model_name.replace("yaml","csv"),prob=True)
+    model_config_path="data/model_config/phase-1/prob-2/"+model_name
+    predictor=ModelPredictor(model_config_path)
+    predictor.predict_df(df,"data/data_phase1_prob1_"+model_name.replace("yaml","csv"),prob=True)
     
-    for i in range(1,5):
+    #for i in range(1,5):
         
-        model_name="model-"+str(i)+".yaml"
-        model_config_path="data/model_config/phase-1/prob-1/"+model_name
-        print(model_config_path)
-        model_predictor=ModelPredictor(model_config_path)
-        csv_model_path="data/data_phase1_prob1_"+model_name.replace("yaml","csv")
-        model_predictor.predict_df(df,csv_model_path,prob=True)
-    print("done")
+       # model_name="model-"+str(i)+".yaml"
+       # model_config_path="data/model_config/phase-1/prob-1/"+model_name
+       # print(model_config_path)
+       # model_predictor=ModelPredictor(model_config_path)
+       # csv_model_path="data/data_phase1_prob1_"+model_name.replace("yaml","csv")
+        #model_predictor.predict_df(df,csv_model_path,prob=True)
+    #print("done")
