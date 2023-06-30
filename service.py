@@ -124,7 +124,7 @@ async def inference_phase1_prob1(request: InferenceRequest):
     response.id=request.id
     response.predictions=result
     response.drift=0
-    save_respone_data_phase1_prob1(feature_df,result,request.id)
+    #save_respone_data_phase1_prob1(feature_df,result,request.id)
     return response
 @svc.api(
     input=JSON(pydantic_model=InferenceRequest),
@@ -203,5 +203,5 @@ async def inference_phase1_prob2(request: InferenceRequest):
     response.id=request.id
     response.predictions=result
     response.drift=0
-    save_respone_data_phase1_prob2(feature_df,result,request.id)
+    #save_respone_data_phase1_prob2(feature_df,result,request.id)
     return response
