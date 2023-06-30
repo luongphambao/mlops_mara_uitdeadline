@@ -40,11 +40,7 @@ class ModelTrainer:
     @staticmethod
     def get_model(model_name):
         dict_model = {
-<<<<<<< HEAD
             "xgb": xgb.XGBClassifier(eval_metric="logloss"),
-=======
-            "xgb": xgb.XGBClassifier(objective=objective, **model_params,eval_metric="logloss"),
->>>>>>> 9af744178eab274c5b56df4724f6410c8bfa890e
             "svm": SVC(probability=True,C=1.0, kernel='rbf', degree=3, gamma='scale', coef0=0.0, shrinking=True),
             "knn": KNeighborsClassifier(),
             "random_forest": RandomForestClassifier(),
