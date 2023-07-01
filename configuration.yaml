@@ -4,7 +4,19 @@ runners:
     max_batch_size: 60000
     max_latency_ms: 100
 api_server:
-  workers: 16
+  workers: ~ 
   traffic:
-    max_concurrency: 200
+    max_concurrency: 100
     timeout: 5
+  logging:
+    access:
+      enabled: true
+      request_content_length: true
+      request_content_type: true
+      response_content_length: true
+      response_content_type: true
+monitoring:
+  enabled: true
+  type: default
+  options:
+    log_path: ~

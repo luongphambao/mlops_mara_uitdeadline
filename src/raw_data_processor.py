@@ -36,13 +36,12 @@ class RawDataProcessor:
         if len(categorical_cols) == 0:
             return raw_df
 
-        apply_df = raw_df.copy()
-        for col in categorical_cols:
-            apply_df[col] = apply_df[col].astype("category")
-            apply_df[col] = pd.Categorical(
-                apply_df[col],
-                categories=category_index[col],
-            ).codes
+        apply_df = raw_df
+        apply_df[categorical_cols] = apply_df[categorical_cols].astype("category")
+        apply_df[categorical_cols] = apply_df[categorical_cols].apply(
+            lambda x: pd.Categorical(x, categories=category_index[x.name]).codes
+        )
+
         return apply_df
 
     @staticmethod

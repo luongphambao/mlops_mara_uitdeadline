@@ -14,6 +14,10 @@ from pandas.util import hash_pandas_object
 from src.problem_config import ProblemConst, create_prob_config
 from src.raw_data_processor import RawDataProcessor
 from src.utils import AppConfig, AppPath
+
+
+LOG_PATH = os.environ.get("/sample_solution/data/monitoring")
+
 class MLOPS_SERVING():
     """
     A minimum prediction service exposing a Scikit-learn model
@@ -49,7 +53,14 @@ columns_prob1=["feature1", "feature2", "feature3", "feature4", "feature5", "feat
 columns_prob2=["feature1", "feature2", "feature3", "feature4", "feature5", "feature6", "feature7", "feature8", "feature9", "feature10", "feature11", "feature12", "feature13", "feature14", "feature15", "feature16","feature17","feature18","feature19","feature20"]
 robust_scaler_prob1 = pickle.load(open("features/robust_scaler_phase-1_prob-1.pkl", 'rb'))
 robust_scaler_prob2 = pickle.load(open("features/robust_scaler_phase-1_prob-2.pkl", 'rb'))
-
+respone_phase1_prob1_dir="data/captured_data/phase-1/prob-1/response"
+respone_phase1_prob2_dir="data/captured_data/phase-1/prob-2/response"
+if not os.path.exists(respone_phase1_prob1_dir):
+    os.makedirs(respone_phase1_prob1_dir)
+if not os.path.exists(respone_phase1_prob2_dir):
+    os.makedirs(respone_phase1_prob2_dir)
+request_phase1_prob1_list=[]
+request_phase1_prob2_list=[]
 def save_request_data_json(request,captured_data_dir):
     """Save request data to json file"""
     result_path=os.path.join(captured_data_dir, f"{request.id}.json")
@@ -67,12 +78,7 @@ def save_request_data(feature_df: pd.DataFrame, captured_data_dir, data_id: str)
 # def save_respone_data(feature5: list, captured_data_dir,label,data_id):
 #     """Save response data and featuredf"""
 #     #create df 
-respone_phase1_prob1_dir="data/captured_data/phase-1/prob-1/response"
-respone_phase1_prob2_dir="data/captured_data/phase-1/prob-2/response"
-if not os.path.exists(respone_phase1_prob1_dir):
-    os.makedirs(respone_phase1_prob1_dir)
-if not os.path.exists(respone_phase1_prob2_dir):
-    os.makedirs(respone_phase1_prob2_dir)
+
 def save_respone_data_phase1_prob1(feature_df,predictions,data_id):
     """Save response data and featuredf to json file"""
     feature_df["label_model"]=predictions
@@ -90,6 +96,11 @@ class InferenceResponse(BaseModel):
     id: Optional[str]
     predictions: Optional[List[float]]
     drift: Optional[int]
+class InferenceDataCollection(BaseModel):
+    phase_id: str
+    prob_id: str
+class InferenceStatus(BaseModel):
+    status: str
 def predict(request: np.ndarray) -> np.ndarray:
     result = model_prob1.predict.run(request)
     return result
@@ -105,12 +116,10 @@ def post_process(result,confidence_score,threshold):
    
 )
 async def inference_phase1_prob1(request: InferenceRequest):
-    """
-    Example request: {"id": "123", "rows": [[113, 9, 63.17, 44420, 43.08059354989101, -82.53012356265731, 15429, 40.282905, -80.067555, 24.265891758842134, 20, 0, 5, 0.8992553559883496], [-1, 5, 6.7, 84015, 40.951731452865886, -112.89138115985779, 62494, 40.565544, -112.367142, 19.10470490940412, 23, 5, 7, 0.7518914565676378]], "columns": ["feature1", "feature2", "feature3", "feature4", "feature5", "feature6", "feature7", "feature8", "feature9", "feature10", "feature11", "feature12", "feature13", "feature14", "feature15", "feature16"]}
-    """
-    save_request_data_json(request, model_serv.prob_config1.captured_data_dir)
+    request_phase1_prob1_list.append(request)
     rows=request.rows
     raw_df = pd.DataFrame(rows, columns=request.columns)
+    
     feature_df = RawDataProcessor.apply_category_features(
             raw_df=raw_df,
             categorical_cols=categorical_cols1,
@@ -119,7 +128,7 @@ async def inference_phase1_prob1(request: InferenceRequest):
     result = await asyncio.gather(model_prob1.predict.async_run(feature_df))
     result=result[0]
     result=[int(i) for i in result]
-    feature_df=pd.DataFrame(feature_df,columns=columns_prob1)
+    #feature_df=pd.DataFrame(feature_df,columns=columns_prob1)
     response = InferenceResponse()
     response.id=request.id
     response.predictions=result
@@ -183,8 +192,9 @@ async def inference_phase1_prob2(request: InferenceRequest):
     ]
   }
   """
-    
-    save_request_data_json(request, model_serv.prob_config2.captured_data_dir)
+    request_phase1_prob2_list.append(request)
+    #print(request_phase1_prob2_list)
+    #save_request_data_json(request, model_serv.prob_config2.captured_data_dir)
     rows=request.rows
     raw_df = pd.DataFrame(rows, columns=request.columns)
     feature_df = RawDataProcessor.apply_category_features(
@@ -193,7 +203,7 @@ async def inference_phase1_prob2(request: InferenceRequest):
             category_index=category_index2)
     feature_df=feature_df[columns_prob2]
     feature_df=robust_scaler_prob2.transform(feature_df)
-    feature_df=pd.DataFrame(feature_df,columns=columns_prob2)
+    #feature_df=pd.DataFrame(feature_df,columns=columns_prob2)
     result = await asyncio.gather(model_prob2.predict.async_run(feature_df))
     result=result[0]
     result=[int(i) for i in result]
@@ -205,3 +215,46 @@ async def inference_phase1_prob2(request: InferenceRequest):
     response.drift=0
     #save_respone_data_phase1_prob2(feature_df,result,request.id)
     return response
+@svc.api(
+    input=JSON(pydantic_model=InferenceDataCollection),
+    output=JSON(pydantic_model=InferenceStatus),
+    route ="/phase-1/prob-1/data",)
+def data_collection_phase1_prob1(request: InferenceDataCollection):
+    """example request:
+        {
+    "phase_id": "phase-1",
+    "prob_id": "prob-1"
+  }
+  """
+    for request in request_phase1_prob1_list:
+        save_request_data_json(request, model_serv.prob_config1.captured_data_dir)
+    request_phase1_prob1_list.clear()
+    return InferenceStatus(status="storage phase-1 prob-1 data successfully")
+@svc.api(
+    input=JSON(pydantic_model=InferenceDataCollection),
+    output=JSON(pydantic_model=InferenceStatus),
+    route ="/phase-1/prob-2/data",)
+def data_collection_phase1_prob2(request: InferenceDataCollection):
+    """example request:
+        {
+    "phase_id": "phase-1",
+    "prob_id": "prob-2"
+  }
+  """
+    for request in request_phase1_prob2_list:
+        save_request_data_json(request, model_serv.prob_config2.captured_data_dir)
+    request_phase1_prob2_list.clear()
+    return InferenceStatus(status="storage phase-1 prob-2 data successfully")
+
+# @svc.on_shutdown
+# def save_request_phase_1_prob1():
+#     """Save request data to json file"""
+#     for request in request_phase1_prob1_list:
+#         save_request_data_json(request, model_serv.prob_config1.captured_data_dir)
+#     #request_phase1_prob1_list.clear()
+# def save_request_phase_1_prob2():
+#     """Save request data to json file"""
+#     for request in request_phase1_prob2_list:
+#         save_request_data_json(request, model_serv.prob_config2.captured_data_dir)
+#     #request_phase1_prob2_list.clear()
+    
