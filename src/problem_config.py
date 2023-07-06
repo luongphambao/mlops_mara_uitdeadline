@@ -6,6 +6,7 @@ except:
 
 class ProblemConst:
     PHASE1 = "phase-1"
+    PHASE2 = "phase-2"
     PROB1 = "prob-1"
     PROB2 = "prob-2"
 
@@ -51,8 +52,8 @@ def create_prob_config(phase_id: str, prob_id: str) -> ProblemConfig:
     prob_config = ProblemConfig()
     prob_config.prob_id = prob_id
     prob_config.phase_id = phase_id
-    prob_config.test_size = 0.4
-    prob_config.random_state = 19521242
+    prob_config.test_size = 0.2
+    prob_config.random_state =123
 
     # construct data paths for original data
     prob_config.raw_data_path = (
