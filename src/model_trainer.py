@@ -151,7 +151,7 @@ class ModelTrainer:
             over_sampling = SMOTE()
             train_x, train_y = over_sampling.fit_resample(train_x, train_y)
             if add_captured_data:
-                df_capture=pd.read_csv(os.path.join("data","data_phase2_prob1_model-3.csv"))
+                df_capture=pd.read_csv(os.path.join("data","data_phase2_prob1_model-1.csv"))
                 #batch_id,label_model,prob
                 if "batch_id" in df_capture.columns:
                     df_capture=df_capture.drop(columns=["batch_id"])
@@ -196,7 +196,9 @@ class ModelTrainer:
             over_sampling = SMOTE()
             train_x, train_y = over_sampling.fit_resample(train_x, train_y)
             if add_captured_data:
-                df_capture=pd.read_csv(os.path.join("data","data_phase2_prob1_model-3.csv"))
+                df_capture=pd.read_csv(os.path.join("data","data_phase2_prob2_model-1.csv"))
+                #shuffe data
+                df_capture=df_capture.sample(frac=1)
                 #batch_id,label_model,prob
                 if "batch_id" in df_capture.columns:
                     df_capture=df_capture.drop(columns=["batch_id"])
@@ -206,12 +208,15 @@ class ModelTrainer:
                     df_capture=df_capture.drop(columns=["prob"])
                 
                 captured_x=df_capture.drop(columns=["label_model"])
+                captured_y=df_capture["label_model"]
+                captured_x=captured_x[:5000]
+                captured_y=captured_y[:5000]
                 captured_x=RawDataProcessor.apply_category_features(
                     raw_df=captured_x,
                     categorical_cols=prob_config.categorical_cols,
                     category_index=RawDataProcessor.load_category_index(prob_config)
                 )
-                captured_y=df_capture["label_model"]
+                
                 captured_y=encoder_label.transform(captured_y)
                 captured_x = captured_x.to_numpy()
                 #captured_y = captured_y.to_numpy()
@@ -223,6 +228,8 @@ class ModelTrainer:
             test_x, test_y = RawDataProcessor.load_test_data(prob_config)
             test_y=encoder_label.transform(test_y)
             test_x=robust_scaler.transform(test_x) 
+        print("train_x shape: ",train_x.shape)
+        print("test_x shape: ",test_x.shape)
         model = ModelTrainer.get_model(model_name)
         model.fit(train_x, train_y)
         predictions = model.predict(test_x)

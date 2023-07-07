@@ -16,6 +16,7 @@ from sklearn.metrics import roc_auc_score
 import sys  
 import numpy as np
 import json 
+import sys
 try:
     from problem_config import ProblemConst, create_prob_config
     from raw_data_processor import RawDataProcessor
@@ -54,11 +55,6 @@ class ModelPredictor:
         self.scaler_phase2=pickle.load(open("features/robust_scaler_phase-2_prob-1.pkl", 'rb')) if self.prob_config.prob_id=="prob-1" else pickle.load(open("features/robust_scaler_phase-2_prob-2.pkl", 'rb'))
         #self.test_data=pd.read_csv("data/label_data_phase1_prob1.csv") if self.prob_config.prob_id=="prob-1" else pd.read_csv("data/label_data_phase1_prob2.csv")
         #self.submit_data=pd.read_csv("data/data_phase1_prob1.csv") if self.prob_config.prob_id=="prob-1" else pd.read_csv("data/data_phase1_prob2.csv")
-    def detect_drift(self, feature_df) -> int:
-        # watch drift between coming requests and training data
-        #time.sleep(0.02)
-        return random.choice([0, 1])
-
     def test(self, raw_df):
         start_time = time.time()
         #get data except label
@@ -113,8 +109,14 @@ class ModelPredictor:
         if prob==True:
             prob_prediction=self.model.predict_proba(feature_df)
             prob_prediction=np.max(prob_prediction,axis=1).tolist()
+            #prob_prediction2=np.min(prob_prediction,axis=1).tolist()
             raw_df["prob"]=prob_prediction
-        
+            #number of data confidence score <0.8
+            print("number of data confidence score <0.8: ",len(raw_df[raw_df["prob"]<0.8])/len(raw_df))
+            print("number of data confidence score <0.7: ",len(raw_df[raw_df["prob"]<0.7])/len(raw_df))
+            print("number of data confidence score <0.6: ",len(raw_df[raw_df["prob"]<0.6])/len(raw_df))
+            print("number of data confidence score <0.5: ",len(raw_df[raw_df["prob"]<0.5])/len(raw_df))
+            #
         raw_df.to_csv(save_path,index=False)
         return raw_df
     
@@ -147,19 +149,31 @@ if __name__=="__main__":
     # model_config_path="data/model_config/phase-1/prob-2/"+model_name
     # predictor=ModelPredictor(model_config_path)
     # predictor.predict_df(df,"data/data_phase1_prob1_"+model_name.replace("yaml","csv"),prob=True)
-    parquet_path="data/raw_data/phase-2/prob-2/raw_train.parquet"
-    df = pd.read_parquet(parquet_path)
-    #csv_path="data/data_phase2_prob2.csv"
-    #df = pd.read_csv(csv_path)
+    # parquet_path="data/raw_data/phase-2/prob-2/raw_train.parquet"
+    # df = pd.read_parquet(parquet_path)
+    
     #1 to 41
     #df=df[["feature1","feature2","feature3","feature4","feature5","feature6","feature7","feature8","feature9","feature10","feature11","feature12","feature13","feature14","feature15","feature16","feature17","feature18","feature19","feature20","feature21","feature22","feature23","feature24","feature25","feature26","feature27","feature28","feature29","feature30","feature31","feature32","feature33","feature34","feature35","feature36","feature37","feature38","feature39","feature40","feature41"]]
     #df.reindex(["feature1","feature2","feature3","feature4","feature5","feature6","feature7","feature8","feature9","feature10","feature11","feature12","feature13","feature14","feature15","feature16","feature17","feature18","feature19","feature20","feature21","feature22","feature23","feature24","feature25","feature26","feature27","feature28","feature29","feature30","feature31","feature32","feature33","feature34","feature35","feature36","feature37","feature38","feature39","feature40","feature41"],axis=1)
     #df=pd.read_parquet(parquet_path)
-    df.to_csv("data/data_phase2_prob2.csv",index=False)
-    model_name="model-1.yaml"
-    model_config_path="data/model_config/phase-2/prob-2/"+model_name
+    prob_id=sys.argv[1]
+    if prob_id=="2":
+        csv_path="data/data_captured_phase-2_prob-2.csv"
+        model_name="model-1.yaml"
+        prefix="data/data_phase2_prob2_"
+        model_config_path="data/model_config/phase-2/prob-2/"+model_name
+    else:
+        csv_path="data/data_captured_phase-2_prob-1.csv"
+        model_name="model-1.yaml"
+        prefix="data/data_phase2_prob1_"
+        model_config_path="data/model_config/phase-2/prob-1/"+model_name
+    df = pd.read_csv(csv_path)
+   # df.to_csv("data/data_phase2_prob2.csv",index=False)
+   
+    
     predictor=ModelPredictor(model_config_path)
-    predictor.predict_df(df,"data/data_phase2_prob2_"+model_name.replace("yaml","csv"),prob=True)
+    predictor.predict_df(df,prefix+model_name.replace("yaml","csv"),prob=True)
+    print("model phase 2 predict done")
     #for i in range(1,5):
         
        # model_name="model-"+str(i)+".yaml"
