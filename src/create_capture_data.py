@@ -4,8 +4,8 @@ import pandas as pd
 import numpy as np
 import sys 
 
-phase_id=sys.argv[1]
-prob_id=sys.argv[2]
+phase_id="phase-2"
+prob_id="prob-1"
 data_path="data/captured_data/"+phase_id+"/"+prob_id+"/"
 save_path="data/"+"data_captured_"+phase_id+"_"+prob_id+".csv"
 list_df=[]

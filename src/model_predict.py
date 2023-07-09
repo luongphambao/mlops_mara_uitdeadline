@@ -75,10 +75,15 @@ class ModelPredictor:
         incorrect_prediction=raw_df[label!=prediction]
         name="data/incorrect_prediction_"+str(self.prob_config.phase_id)+"_"+str(self.prob_config.prob_id)+"_"+str(self.config["model_name"])+"_"+str(self.config["model_version"])+".csv"
         incorrect_prediction.to_csv(name,index=False)
-    def predict_df(self,raw_df,save_path=None,prob=False):
+    def predict_df(self,raw_df,save_path=None,prob=False,change_label=False):
         #df_data=raw_df.drop(columns=["batch_id","is_drift"])
         #df_data=raw_df.drop(columns=["batch_id","is_drift","prob"])
-        df_data=raw_df
+        raw_df=RawDataProcessor.fill_category_features(raw_df,self.prob_config.categorical_cols)
+        raw_df=RawDataProcessor.fill_numeric_features(raw_df,self.prob_config.numerical_cols)
+        df_data=raw_df.copy()
+
+        #print(raw_df.head())
+        #exit()
         if "batch_id" in df_data.columns:
             df_data=df_data.drop(columns=["batch_id"])
         if "is_drift" in df_data.columns:
@@ -89,14 +94,22 @@ class ModelPredictor:
             df_data=df_data.drop(columns=["prob"])
         if "label" in raw_df.columns:
             df_data=df_data.drop(columns=["label"])
-        print(df_data.columns.tolist())
-
+        #(df_data.head())
+       
+        #print(df_data.head())
+                #df_data=RawDataProcessor.fill_category_features(df_data,self.prob_config.categorical_cols)
+        #df_data=RawDataProcessor.fill_numeric_features(df_data,self.prob_config.numerical_cols)
+        #df_data.to_csv("data/df_filled.csv",index=False)
         feature_df = RawDataProcessor.apply_category_features(
             raw_df=df_data,
             categorical_cols=self.prob_config.categorical_cols,
             category_index=self.category_index,
         )
-        feature_df=feature_df.astype(np.float)
+        #print(raw_df.head())
+        print(feature_df.head())
+        
+        
+        #feature_df=feature_df.astype(np.float)
         feature_df=self.scaler_phase2.transform(feature_df)
         prediction = self.model.predict(feature_df)
         prediction=[int(i) for i in prediction]
@@ -114,9 +127,30 @@ class ModelPredictor:
             #number of data confidence score <0.8
             print("number of data confidence score <0.8: ",len(raw_df[raw_df["prob"]<0.8])/len(raw_df))
             print("number of data confidence score <0.7: ",len(raw_df[raw_df["prob"]<0.7])/len(raw_df))
-            print("number of data confidence score <0.6: ",len(raw_df[raw_df["prob"]<0.6])/len(raw_df))
+            print("number of data confidence score <0.6: ",len(raw_df[raw_df["prob"]<=0.6])/len(raw_df))
             print("number of data confidence score <0.5: ",len(raw_df[raw_df["prob"]<0.5])/len(raw_df))
-            #
+            df_confidence_less_than_0_6=raw_df[raw_df["prob"]<=0.6]
+            df_confidence_less_than_0_6.to_csv("data/df_confidence_less_than_0_6.csv",index=False)
+            if change_label==True:
+                #change label to 0 or 1  and 1 to 0 if  confidence score <=0.6
+                index_less_than_0_6=raw_df[raw_df["prob"]<=0.7].index
+                label_less_than_0_6=raw_df[raw_df["prob"]<=0.7]["label_model"].tolist()
+                kmeans_csv_path="data/data_captured_phase-2_prob-1_kmean.csv"
+                df_kmeans=pd.read_csv(kmeans_csv_path)
+                #find label in df_kmeans with index in index_less_than_0_6
+                df_kmeans=df_kmeans.loc[index_less_than_0_6]
+                label_kmeans=df_kmeans["label_model"].tolist()
+                #print number different label
+                print("number of different label: ",len([i for i in range(len(label_less_than_0_6)) if label_less_than_0_6[i]!=label_kmeans[i]]))
+                print(len(label_less_than_0_6))
+                #change label
+                raw_df.loc[index_less_than_0_6,"label_model"]=label_kmeans
+
+                
+                #df_confidence_less_than_0_6=raw_df[raw_df["prob"]<=0.6]
+                #df_confidence_less_than_0_6.to_csv("data/df_confidence_less_than_0_6_change_label.csv",index=False)
+                #raw_df["label_model
+        
         raw_df.to_csv(save_path,index=False)
         return raw_df
     

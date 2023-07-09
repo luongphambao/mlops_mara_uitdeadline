@@ -102,8 +102,23 @@ class RawDataProcessor:
         captured_y = pd.read_parquet(captured_y_path)
         
         return captured_x, captured_y[prob_config.target_col]
+    @staticmethod
+    def fill_category_features(raw_df, categorical_cols):
+        #fill nan with most frequent
+        df=raw_df.copy()
+        for col in df.columns:
+            if col in categorical_cols:
+                df[col].fillna(df[col].value_counts().index[0],inplace=True)
+        return df
+            
 
-
+    def fill_numeric_features(raw_df,numerical_cols):
+        #fill nan with mean
+        df=raw_df.copy()
+        for col in df.columns:
+            if col in numerical_cols:
+                df[col].fillna(df[col].mean(),inplace=True)
+        return df
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--phase-id", type=str, default=ProblemConst.PHASE1)
