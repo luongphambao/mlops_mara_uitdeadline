@@ -7,3 +7,4 @@ bentoml==1.0.22
 asyncio==3.4.3
 lightgbm==3.2.1
 pandas==1.5.3
+scikit-learn==1.1.2

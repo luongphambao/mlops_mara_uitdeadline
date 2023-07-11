@@ -12,7 +12,6 @@ RUN pip install -r requirements.txt
 COPY ./src /sample_solution/src
 COPY ./service.py /sample_solution/service.py
 COPY ./configuration.yaml /sample_solution/configuration.yaml
-COPY ./monitoring/ /sample_solution/monitoring/
 # COPY predict.sh /sample_solution/predict.sh
 WORKDIR /sample_solution
 

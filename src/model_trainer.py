@@ -34,6 +34,8 @@ from sklearn.preprocessing import (
     OneHotEncoder,
     RobustScaler,
 )
+#import simple imputer and iterrative imputer
+from sklearn.impute import SimpleImputer,IterativeImputer
 import json 
 #encoder label
 from sklearn.preprocessing import LabelEncoder
@@ -140,8 +142,32 @@ class ModelTrainer:
             test_x, test_y = RawDataProcessor.load_test_data(prob_config)
             test_x=robust_scaler.transform(test_x)
         if prob_config.phase_id=="phase-2" and prob_config.prob_id=="prob-1":
-            train_x, train_y = RawDataProcessor.load_train_data(prob_config)
-            print(train_y.value_counts())
+            df=pd.read_parquet("data/raw_data/phase-2/prob-1/raw_train.parquet")
+            X=df.drop(columns=["label"])
+            y=df["label"]
+            #split train test
+            index_80=int(len(X)*0.8)
+            train_x,train_y=X[:index_80],y[:index_80]
+            test_x,test_y=X[index_80:],y[index_80:]
+            #fill missing category value
+            category_imputer=SimpleImputer(strategy="most_frequent")
+            train_x[prob_config.categorical_cols]=category_imputer.fit_transform(train_x[prob_config.categorical_cols])
+            test_x[prob_config.categorical_cols]=category_imputer.transform(test_x[prob_config.categorical_cols])
+            #fill missing numerical value
+            numerical_imputer=IterativeImputer()
+            train_x[prob_config.numerical_cols]=numerical_imputer.fit_transform(train_x[prob_config.numerical_cols])
+            test_x[prob_config.numerical_cols]=numerical_imputer.transform(test_x[prob_config.numerical_cols])
+            train_x= RawDataProcessor.apply_category_features(
+                    raw_df=train_x,
+                    categorical_cols=prob_config.categorical_cols,
+                    category_index=RawDataProcessor.load_category_index(prob_config)
+                )
+            test_x= RawDataProcessor.apply_category_features(
+                    raw_df=test_x,
+                    categorical_cols=prob_config.categorical_cols,
+                    category_index=RawDataProcessor.load_category_index(prob_config)
+                )
+            
             train_x = train_x.to_numpy()
             train_y = train_y.to_numpy()
             robust_scaler = RobustScaler(with_centering=False, with_scaling=True)
@@ -153,15 +179,13 @@ class ModelTrainer:
             train_x, train_y = over_sampling.fit_resample(train_x, train_y)
             if add_captured_data:
                 df_capture=pd.read_csv(os.path.join("data","data_phase2_prob1_model-1.csv"))
-                RawDataProcessor.fill_category_features(df_capture,prob_config.categorical_cols)
-                RawDataProcessor.fill_numeric_features(df_capture,prob_config.numerical_cols)
                 
                 #shuffe data
                 #df_capture=df_capture.sample(frac=1)
                 #sort by descending prob
-                df_capture=df_capture.sort_values(by=['prob'],ascending=False)
-                df_capture_last=df_capture.iloc[8000:]
-                df_capture_last.to_csv("data/last.csv",index=False)
+                #df_capture=df_capture.sort_values(by=['prob'],ascending=False)
+                #df_capture_last=df_capture.iloc[8000:]
+                #df_capture_last.to_csv("data/last.csv",index=False)
                 #batch_id,label_model,prob
                 if "batch_id" in df_capture.columns:
                     df_capture=df_capture.drop(columns=["batch_id"])
@@ -171,6 +195,8 @@ class ModelTrainer:
                     df_capture=df_capture.drop(columns=["prob"])
                 
                 captured_x=df_capture.drop(columns=["label_model"])
+                captured_x[prob_config.categorical_cols]=category_imputer.transform(captured_x[prob_config.categorical_cols])
+                captured_x[prob_config.numerical_cols]=numerical_imputer.transform(captured_x[prob_config.numerical_cols])
                 captured_x=RawDataProcessor.apply_category_features(
                     raw_df=captured_x,
                     categorical_cols=prob_config.categorical_cols,
@@ -180,8 +206,8 @@ class ModelTrainer:
                 print(len(captured_x))
                 captured_x = captured_x.to_numpy()
                 captured_y = captured_y.to_numpy()
-                captured_x,test_new_x=captured_x[:8000],captured_x[8000:]
-                captured_y,test_new_y=captured_y[:8000],captured_y[8000:]
+                captured_x,test_new_x=captured_x[:6000],captured_x[6000:]
+                captured_y,test_new_y=captured_y[:6000],captured_y[6000:]
 
                 captured_x=robust_scaler.transform(captured_x)
                 test_new_x=robust_scaler.transform(test_new_x)
@@ -190,7 +216,7 @@ class ModelTrainer:
                 #test_new_x,test_new_y=smote.fit_resample(test_new_x, test_new_y)
                 train_x = np.concatenate((train_x, captured_x), axis=0)
                 train_y = np.concatenate((train_y, captured_y), axis=0)
-            test_x, test_y = RawDataProcessor.load_test_data(prob_config)
+            #test_x, test_y = RawDataProcessor.load_test_data(prob_config)
             test_x=robust_scaler.transform(test_x)
             #concat train_x and test_x 
             test_x,test_y= over_sampling.fit_resample(test_x, test_y)

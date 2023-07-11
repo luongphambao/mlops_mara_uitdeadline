@@ -55,6 +55,8 @@ class ModelPredictor:
         self.scaler_phase2=pickle.load(open("features/robust_scaler_phase-2_prob-1.pkl", 'rb')) if self.prob_config.prob_id=="prob-1" else pickle.load(open("features/robust_scaler_phase-2_prob-2.pkl", 'rb'))
         #self.test_data=pd.read_csv("data/label_data_phase1_prob1.csv") if self.prob_config.prob_id=="prob-1" else pd.read_csv("data/label_data_phase1_prob2.csv")
         #self.submit_data=pd.read_csv("data/data_phase1_prob1.csv") if self.prob_config.prob_id=="prob-1" else pd.read_csv("data/data_phase1_prob2.csv")
+        self.category_imputer=pickle.load(open("features/category_imputer_phase-2_prob-1.pkl", 'rb')) if self.prob_config.prob_id=="prob-1" else pickle.load(open("features/imputer_phase-1_prob-2.pkl", 'rb'))
+        self.num_imputer=pickle.load(open("features/numerical_imputer_phase-2_prob-1.pkl", 'rb')) if self.prob_config.prob_id=="prob-1" else pickle.load(open("features/imputer_phase-1_prob-2_num.pkl", 'rb'))
     def test(self, raw_df):
         start_time = time.time()
         #get data except label
@@ -78,8 +80,8 @@ class ModelPredictor:
     def predict_df(self,raw_df,save_path=None,prob=False,change_label=False):
         #df_data=raw_df.drop(columns=["batch_id","is_drift"])
         #df_data=raw_df.drop(columns=["batch_id","is_drift","prob"])
-        raw_df=RawDataProcessor.fill_category_features(raw_df,self.prob_config.categorical_cols)
-        raw_df=RawDataProcessor.fill_numeric_features(raw_df,self.prob_config.numerical_cols)
+        raw_df[self.prob_config.categorical_cols]=self.category_imputer.transform(raw_df[self.prob_config.categorical_cols])
+        raw_df[self.prob_config.numerical_cols]=self.num_imputer.transform(raw_df[self.prob_config.numerical_cols])
         df_data=raw_df.copy()
 
         #print(raw_df.head())
