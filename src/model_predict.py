@@ -52,11 +52,11 @@ class ModelPredictor:
         #self.model = mlflow.pyfunc.load_model(model_uri)
         self.model = mlflow.sklearn.load_model(model_uri)
         self.scaler=pickle.load(open("features/robust_scaler_phase-1_prob-1.pkl", 'rb')) if self.prob_config.prob_id=="prob-1" else pickle.load(open("features/robust_scaler_phase-1_prob-2.pkl", 'rb'))
-        self.scaler_phase2=pickle.load(open("features/robust_scaler_phase-2_prob-1.pkl", 'rb')) if self.prob_config.prob_id=="prob-1" else pickle.load(open("features/robust_scaler_phase-2_prob-2.pkl", 'rb'))
+        self.scaler_phase2=pickle.load(open("features/robust_scaler_phase-3_prob-1.pkl", 'rb')) if self.prob_config.prob_id=="prob-1" else pickle.load(open("features/robust_scaler_phase-3_prob-2.pkl", 'rb'))
         #self.test_data=pd.read_csv("data/label_data_phase1_prob1.csv") if self.prob_config.prob_id=="prob-1" else pd.read_csv("data/label_data_phase1_prob2.csv")
         #self.submit_data=pd.read_csv("data/data_phase1_prob1.csv") if self.prob_config.prob_id=="prob-1" else pd.read_csv("data/data_phase1_prob2.csv")
-        self.category_imputer=pickle.load(open("features/category_imputer_phase-2_prob-1.pkl", 'rb')) if self.prob_config.prob_id=="prob-1" else pickle.load(open("features/imputer_phase-1_prob-2.pkl", 'rb'))
-        self.num_imputer=pickle.load(open("features/numerical_imputer_phase-2_prob-1.pkl", 'rb')) if self.prob_config.prob_id=="prob-1" else pickle.load(open("features/imputer_phase-1_prob-2_num.pkl", 'rb'))
+        #.category_imputer=pickle.load(open("features/category_imputer_phase-3_prob-1.pkl", 'rb')) if self.prob_config.prob_id=="prob-1" else pickle.load(open("features/imputer_phase-1_prob-2.pkl", 'rb'))
+        #self.num_imputer=pickle.load(open("features/numerical_imputer_phase-3_prob-1.pkl", 'rb')) if self.prob_config.prob_id=="prob-1" else pickle.load(open("features/imputer_phase-1_prob-2_num.pkl", 'rb'))
     def test(self, raw_df):
         start_time = time.time()
         #get data except label
@@ -80,10 +80,11 @@ class ModelPredictor:
     def predict_df(self,raw_df,save_path=None,prob=False,change_label=False):
         #df_data=raw_df.drop(columns=["batch_id","is_drift"])
         #df_data=raw_df.drop(columns=["batch_id","is_drift","prob"])
-        raw_df[self.prob_config.categorical_cols]=self.category_imputer.transform(raw_df[self.prob_config.categorical_cols])
-        raw_df[self.prob_config.numerical_cols]=self.num_imputer.transform(raw_df[self.prob_config.numerical_cols])
+        #raw_df[self.prob_config.categorical_cols]=self.category_imputer.transform(raw_df[self.prob_config.categorical_cols])
+        #raw_df[self.prob_config.numerical_cols]=self.num_imputer.transform(raw_df[self.prob_config.numerical_cols])
+        #raw_df.to_csv("data/df_filled.csv",index=False)
         df_data=raw_df.copy()
-
+    
         #print(raw_df.head())
         #exit()
         if "batch_id" in df_data.columns:
@@ -96,6 +97,8 @@ class ModelPredictor:
             df_data=df_data.drop(columns=["prob"])
         if "label" in raw_df.columns:
             df_data=df_data.drop(columns=["label"])
+        if "Cluster" in raw_df.columns:
+            df_data=df_data.drop(columns=["Cluster"])
         #(df_data.head())
        
         #print(df_data.head())
@@ -115,9 +118,9 @@ class ModelPredictor:
         feature_df=self.scaler_phase2.transform(feature_df)
         prediction = self.model.predict(feature_df)
         prediction=[int(i) for i in prediction]
-        if self.config["prob_id"]=="prob-2" and self.config["phase_id"]=="phase-2":
+        if self.config["prob_id"]=="prob-2" and self.config["phase_id"]=="phase-3":
             
-            with open("features/mapping_label_phase-2_prob-2.json","r") as f:
+            with open("features/mapping_label_phase-3_prob-2.json","r") as f:
                 mapping=json.load(f)
             prediction=[mapping[str(i)] for i in prediction]
         raw_df["label_model"]=prediction
@@ -128,8 +131,19 @@ class ModelPredictor:
             raw_df["prob"]=prob_prediction
             #number of data confidence score <0.8
             print("number of data confidence score <0.8: ",len(raw_df[raw_df["prob"]<0.8])/len(raw_df))
+            #number of data confidence score <0.8 and label=1
+            print("number of data confidence score <0.8 and label=1: ",len(raw_df[(raw_df["prob"]<0.8) & (raw_df["label_model"]==1)])/len(raw_df))
+            #number of data confidence score <0.8 and label=0
+            print("number of data confidence score <0.8 and label=0: ",len(raw_df[(raw_df["prob"]<0.8) & (raw_df["label_model"]==0)])/len(raw_df))
             print("number of data confidence score <0.7: ",len(raw_df[raw_df["prob"]<0.7])/len(raw_df))
+            #number of data confidence score <0.7 and label=1
+            print("number of data confidence score <0.7 and label=1: ",len(raw_df[(raw_df["prob"]<0.7) & (raw_df["label_model"]==1)])/len(raw_df))
+            #number of data confidence score <0.7 and label=0
+            print("number of data confidence score <0.7 and label=0: ",len(raw_df[(raw_df["prob"]<0.7) & (raw_df["label_model"]==0)])/len(raw_df))
             print("number of data confidence score <0.6: ",len(raw_df[raw_df["prob"]<=0.6])/len(raw_df))
+            #number of data confidence score <0.6 and label=1
+            print("number of data confidence score <0.6 and label=1: ",len(raw_df[(raw_df["prob"]<=0.6) & (raw_df["label_model"]==1)])/len(raw_df))
+            #number of data confidence score <0.6 and label=0
             print("number of data confidence score <0.5: ",len(raw_df[raw_df["prob"]<0.5])/len(raw_df))
             df_confidence_less_than_0_6=raw_df[raw_df["prob"]<=0.6]
             df_confidence_less_than_0_6.to_csv("data/df_confidence_less_than_0_6.csv",index=False)
@@ -137,7 +151,7 @@ class ModelPredictor:
                 #change label to 0 or 1  and 1 to 0 if  confidence score <=0.6
                 index_less_than_0_6=raw_df[raw_df["prob"]<=0.7].index
                 label_less_than_0_6=raw_df[raw_df["prob"]<=0.7]["label_model"].tolist()
-                kmeans_csv_path="data/data_captured_phase-2_prob-1_kmean.csv"
+                kmeans_csv_path="data/data_captured_phase-3_prob-1_kmean.csv"
                 df_kmeans=pd.read_csv(kmeans_csv_path)
                 #find label in df_kmeans with index in index_less_than_0_6
                 df_kmeans=df_kmeans.loc[index_less_than_0_6]
@@ -152,7 +166,8 @@ class ModelPredictor:
                 #df_confidence_less_than_0_6=raw_df[raw_df["prob"]<=0.6]
                 #df_confidence_less_than_0_6.to_csv("data/df_confidence_less_than_0_6_change_label.csv",index=False)
                 #raw_df["label_model
-        
+        #sort by prob
+        #raw_df=raw_df.sort_values(by=["prob"],ascending=False)
         raw_df.to_csv(save_path,index=False)
         return raw_df
     
@@ -178,6 +193,22 @@ class ModelPredictor:
         with open(save_json_path,"w") as f:
             json.dump(result_dict,f)
         return result_dict
+    def get_data(self):
+        df=pd.read_parquet("data/raw_data/phase-3/prob-1/raw_train.parquet")
+        #create 5 fold 0-0.2,0.2-0.4,0.4-0.6,0.6-0.8,0.8-1
+        #index=[(0,0.2),(0.2,0.4),(0.4,0.6),(0.6,0.8),(0.8,1)]
+        df1=df[0:int(len(df)*0.2)]
+        df2=df[int(len(df)*0.2):int(len(df)*0.4)]
+        df3=df[int(len(df)*0.4):int(len(df)*0.6)]
+        df4=df[int(len(df)*0.6):int(len(df)*0.8)]
+        df5=df[int(len(df)*0.8):]
+        list_df=[df1,df2,df3,df4,df5]
+        for i in range(5):
+            test_df=list_df[i]
+            #concat 4 df
+            train_df=pd.concat([list_df[j] for j in range(5) if j!=i])
+            train_df.to_csv("data/data_phase1_prob1_train_"+str(i)+".csv",index=False)
+            test_df.to_csv("data/data_phase1_prob1_test_"+str(i)+".csv",index=False)
 if __name__=="__main__":
     # csv_path="data/data_phase1_prob2_model-3.csv"
     # df = pd.read_csv(csv_path)
@@ -185,7 +216,7 @@ if __name__=="__main__":
     # model_config_path="data/model_config/phase-1/prob-2/"+model_name
     # predictor=ModelPredictor(model_config_path)
     # predictor.predict_df(df,"data/data_phase1_prob1_"+model_name.replace("yaml","csv"),prob=True)
-    # parquet_path="data/raw_data/phase-2/prob-2/raw_train.parquet"
+    # parquet_path="data/raw_data/phase-3/prob-2/raw_train.parquet"
     # df = pd.read_parquet(parquet_path)
     
     #1 to 41
@@ -194,22 +225,25 @@ if __name__=="__main__":
     #df=pd.read_parquet(parquet_path)
     prob_id=sys.argv[1]
     if prob_id=="2":
-        csv_path="data/data_captured_phase-2_prob-2.csv"
+        csv_path="data/data_captured_phase-3_prob-2.csv"
         model_name="model-1.yaml"
-        prefix="data/data_phase2_prob2_"
-        model_config_path="data/model_config/phase-2/prob-2/"+model_name
+        prefix="data/data_phase3_prob2_"
+        model_config_path="data/model_config/phase-3/prob-2/"+model_name
     else:
-        csv_path="data/data_captured_phase-2_prob-1.csv"
+        csv_path="data/data_captured_phase-3_prob-1.csv"
+        #csv_path="data/cluster_data.csv"
         model_name="model-1.yaml"
-        prefix="data/data_phase2_prob1_"
-        model_config_path="data/model_config/phase-2/prob-1/"+model_name
+        prefix="data/data_phase3_prob1_"
+        model_config_path="data/model_config/phase-3/prob-1/"+model_name
     df = pd.read_csv(csv_path)
+    #df=pd.read_parquet(csv_path)
    # df.to_csv("data/data_phase2_prob2.csv",index=False)
    
     
     predictor=ModelPredictor(model_config_path)
     predictor.predict_df(df,prefix+model_name.replace("yaml","csv"),prob=True)
-    print("model phase 2 predict done")
+    print("model phase 3 predict done")
+    #predictor.get_data()
     #for i in range(1,5):
         
        # model_name="model-"+str(i)+".yaml"

@@ -52,7 +52,7 @@ def create_prob_config(phase_id: str, prob_id: str) -> ProblemConfig:
     prob_config = ProblemConfig()
     prob_config.prob_id = prob_id
     prob_config.phase_id = phase_id
-    prob_config.test_size = 0.2
+    prob_config.test_size = 0.5
     prob_config.random_state =123
 
     # construct data paths for original data

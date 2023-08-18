@@ -6,12 +6,20 @@ from mlflow.models.signature import ModelSignature
 from pydantic import BaseModel
 import os
 import yaml
+import pickle
 from utils import AppConfig, AppPath
 
 pd.set_option("display.max_columns", None)
 
 
-
+def save_scaler():
+    scaler_prob1="features/robust_scaler_phase-3_prob-1.pkl"
+    scaler_prob2="features/robust_scaler_phase-3_prob-2.pkl"
+    scaler_prob1 = pickle.load(open(scaler_prob1, "rb"))
+    scaler_prob2 = pickle.load(open(scaler_prob2, "rb"))
+    bentoml.sklearn.save("scaler_prob1", scaler_prob1)
+    bentoml.sklearn.save("scaler_prob2", scaler_prob2)
+    print("save scaler success")
 def save_model(config):
 
     # read from .env file registered_model_version.json, get model name, model version
@@ -100,13 +108,20 @@ if __name__ == "__main__":
     # config_phase1_prob1 = yaml.safe_load(open(model_phase1_prob1))
     # model_phase1_prob2="data/model_config/phase-1/prob-2/model-3.yaml"
     # config_phase1_prob2 = yaml.safe_load(open(model_phase1_prob2))
-    model_phase2_prob1="data/model_config/phase-2/prob-1/model-1.yaml"
-    config_phase2_prob1 = yaml.safe_load(open(model_phase2_prob1))
-    model_phase2_prob2="data/model_config/phase-2/prob-2/model-1.yaml"
-    config_phase2_prob2 = yaml.safe_load(open(model_phase2_prob2))
+    # model_phase2_prob1="data/model_config/phase-2/prob-1/model-1.yaml"
+    # config_phase2_prob1 = yaml.safe_load(open(model_phase2_prob1))
+    # model_phase2_prob2="data/model_config/phase-2/prob-2/model-1.yaml"
+    # config_phase2_prob2 = yaml.safe_load(open(model_phase2_prob2))
     # bentoml_model1 = save_model(config_phase1_prob1)
     # bentoml_model2 = save_model(config_phase1_prob2)
-    bentoml_model3 = save_model(config_phase2_prob1)
-    bentoml_model4 = save_model(config_phase2_prob2)
+    # bentoml_model3 = save_model(config_phase2_prob1)
+    # bentoml_model4 = save_model(config_phase2_prob2)
+    model_phase3_prob1="data/model_config/phase-3/prob-1/model-1.yaml"
+    config_phase3_prob1 = yaml.safe_load(open(model_phase3_prob1))
+    model_phase3_prob2="data/model_config/phase-3/prob-2/model-1.yaml"
+    config_phase3_prob2 = yaml.safe_load(open(model_phase3_prob2))
+    bentoml_model1=save_model(config_phase3_prob1)
+    bentoml_model2=save_model(config_phase3_prob2)
+    #save_scaler()
     print("save model bento service success")
 
