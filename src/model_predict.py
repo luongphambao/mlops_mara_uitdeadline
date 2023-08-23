@@ -105,6 +105,7 @@ class ModelPredictor:
                 #df_data=RawDataProcessor.fill_category_features(df_data,self.prob_config.categorical_cols)
         #df_data=RawDataProcessor.fill_numeric_features(df_data,self.prob_config.numerical_cols)
         #df_data.to_csv("data/df_filled.csv",index=False)
+        start=time.time()
         feature_df = RawDataProcessor.apply_category_features(
             raw_df=df_data,
             categorical_cols=self.prob_config.categorical_cols,
@@ -124,6 +125,7 @@ class ModelPredictor:
                 mapping=json.load(f)
             prediction=[mapping[str(i)] for i in prediction]
         raw_df["label_model"]=prediction
+        print("predict time: ",time.time()-start)
         if prob==True:
             prob_prediction=self.model.predict_proba(feature_df)
             prob_prediction=np.max(prob_prediction,axis=1).tolist()
@@ -146,7 +148,7 @@ class ModelPredictor:
             #number of data confidence score <0.6 and label=0
             print("number of data confidence score <0.5: ",len(raw_df[raw_df["prob"]<0.5])/len(raw_df))
             df_confidence_less_than_0_6=raw_df[raw_df["prob"]<=0.6]
-            df_confidence_less_than_0_6.to_csv("data/df_confidence_less_than_0_6.csv",index=False)
+            #df_confidence_less_than_0_6.to_csv("data/df_confidence_less_than_0_6.csv",index=False)
             if change_label==True:
                 #change label to 0 or 1  and 1 to 0 if  confidence score <=0.6
                 index_less_than_0_6=raw_df[raw_df["prob"]<=0.7].index
@@ -168,6 +170,7 @@ class ModelPredictor:
                 #raw_df["label_model
         #sort by prob
         #raw_df=raw_df.sort_values(by=["prob"],ascending=False)
+
         raw_df.to_csv(save_path,index=False)
         return raw_df
     

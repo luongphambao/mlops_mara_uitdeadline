@@ -43,7 +43,7 @@ from sklearn.preprocessing import LabelEncoder
 #import StratifiedKFold
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import train_test_split
-
+import daal4py as d4p
 # data_path="data/raw_data/phase-3/prob-1/raw_train.parquet"
 # data_path1="data/raw_data/phase-2/prob-1/raw_train.parquet"
 # data=pd.read_parquet(data_path)
@@ -90,70 +90,86 @@ print(y_train.value_counts())
 X_test=df_test.drop(columns=['label'])
 y_test=df_test['label']
 scaler=RobustScaler(with_centering=False,with_scaling=True)
-# X_train=scaler.fit_transform(X_train)
-# #X_train=scaler.fit_transform(X_train)
-# X_test=scaler.transform(X_test)
-# X_val=scaler.transform(X_val)
-num_index=len(X_val)*0.4
-num_index=int(num_index)
+X_train=scaler.fit_transform(X_train)
+X_test=scaler.transform(X_test)
+X_val=scaler.transform(X_val)
+model=xgb.XGBClassifier()
+model.fit(X_train,y_train)
+daal_model = d4p.get_gbt_model_from_xgboost(model.get_booster())
+# Make a faster prediction with oneDAL
+import time
+start_1 = time.time()
+y_pred=model.predict(X_test)
+end_1 = time.time()
+print("time sklearn: ",end_1-start_1)
+time_optimize=time.time()
+daal_prediction =d4p.gbt_classification_prediction(nClasses = 2).compute(X_test, daal_model).prediction
+end_optimize=time.time()
+print("time optimize: ",end_optimize-time_optimize)
+# # X_train=scaler.fit_transform(X_train)
+# # #X_train=scaler.fit_transform(X_train)
+# # X_test=scaler.transform(X_test)
+# # X_val=scaler.transform(X_val)
+# num_index=len(X_val)*0.4
+# num_index=int(num_index)
 
-#get random 50 sample from val
-auc_tests=[]
-auc_trains=[]
-index_vals=[]
-for i in range(100):
-    X_val1,X_add=X_val[:num_index],X_val[num_index:]
-    y_val1,y_add=y_val[:num_index],y_val[num_index:]
-    index_val=np.random.randint(0,len(X_val1),100)
-    index_vals.append(index_val)
-    X_val1=X_val1.iloc[index_val]
-    y_val1=y_val1.iloc[index_val]
-    X_val1=scaler.fit_transform(X_val1)
-    X_train=scaler.fit_transform(X_train)
-    X_test=scaler.transform(X_test)
-    #smote=SMOTE(random_state=42)
-    #X_train,y_train=smote.fit_resample(X_train,y_train)
-    model=LGBMClassifier(max_depth=10,n_estimators=1000,random_state=np.random.randint(0,100))
+# #get random 50 sample from val
+# auc_tests=[]
+# auc_trains=[]
+# index_vals=[]
+# for i in range(100):
+#     X_val1,X_add=X_val[:num_index],X_val[num_index:]
+#     y_val1,y_add=y_val[:num_index],y_val[num_index:]
+#     index_val=np.random.randint(0,len(X_val1),100)
+#     index_vals.append(index_val)
+#     X_val1=X_val1.iloc[index_val]
+#     y_val1=y_val1.iloc[index_val]
+#     X_val1=scaler.fit_transform(X_val1)
+#     X_train=scaler.fit_transform(X_train)
+#     X_test=scaler.transform(X_test)
+#     #smote=SMOTE(random_state=42)
+#     #X_train,y_train=smote.fit_resample(X_train,y_train)
+#     model=LGBMClassifier(max_depth=10,n_estimators=1000,random_state=np.random.randint(0,100))
 
-    model.fit(X_val1,y_val1)
-    y_pred=model.predict(X_test)
-    y_pred_proba=model.predict_proba(X_test)
-    auc_test=roc_auc_score(y_test,y_pred)
-    auc_tests.append(auc_test)
+#     model.fit(X_val1,y_val1)
+#     y_pred=model.predict(X_test)
+#     y_pred_proba=model.predict_proba(X_test)
+#     auc_test=roc_auc_score(y_test,y_pred)
+#     auc_tests.append(auc_test)
 
-    print("-----------------test set-----------------")
-    print("roc_auc_score: ",roc_auc_score(y_test,y_pred))
-    # print("f1_score: ",f1_score(y_test,y_pred))
-    # print("precision_score: ",precision_score(y_test,y_pred))
-    # print("recall_score: ",recall_score(y_test,y_pred))
-    print("accuracy_score: ",accuracy_score(y_test,y_pred))
-    #train set
-    print("-----------------train set-----------------")
-    y_pred=model.predict(X_train)
-    y_pred_proba=model.predict_proba(X_train)
-    print("roc_auc_score: ",roc_auc_score(y_train,y_pred))
-    auc_train=roc_auc_score(y_train,y_pred)
-    auc_trains.append(auc_train)
-    # print("f1_score: ",f1_score(y_train,y_pred))
-    # print("precision_score: ",precision_score(y_train,y_pred))
-    # print("recall_score: ",recall_score(y_train,y_pred))
-    print("accuracy_score: ",accuracy_score(y_train,y_pred))
-print("auc_test: ",np.mean(auc_tests))
-print("auc_train: ",np.mean(auc_trains))
-print("best auc_test: ",np.max(auc_tests))
-print("best auc_train: ",np.max(auc_trains))
-print("index_val: ",index_vals[np.argmax(auc_tests)])
-index_val_best=index_vals[np.argmax(auc_tests)]
-X_val_best=X_val.iloc[index_val_best]
-y_val_best=y_val.iloc[index_val_best]
-df_val_best=df_val_get.iloc[index_val_best]
-csv_path="correct_data1.csv"
-if os.path.exists(csv_path):
-    data=pd.read_csv(csv_path)
-    data=pd.concat([data,df_val_best],axis=0)
-    #drop duplicate
-    data.drop_duplicates(inplace=True)
-    data.to_csv(csv_path,index=False)
-else:
-    df_val_best.to_csv(csv_path,index=False)
+#     print("-----------------test set-----------------")
+#     print("roc_auc_score: ",roc_auc_score(y_test,y_pred))
+#     # print("f1_score: ",f1_score(y_test,y_pred))
+#     # print("precision_score: ",precision_score(y_test,y_pred))
+#     # print("recall_score: ",recall_score(y_test,y_pred))
+#     print("accuracy_score: ",accuracy_score(y_test,y_pred))
+#     #train set
+#     print("-----------------train set-----------------")
+#     y_pred=model.predict(X_train)
+#     y_pred_proba=model.predict_proba(X_train)
+#     print("roc_auc_score: ",roc_auc_score(y_train,y_pred))
+#     auc_train=roc_auc_score(y_train,y_pred)
+#     auc_trains.append(auc_train)
+#     # print("f1_score: ",f1_score(y_train,y_pred))
+#     # print("precision_score: ",precision_score(y_train,y_pred))
+#     # print("recall_score: ",recall_score(y_train,y_pred))
+#     print("accuracy_score: ",accuracy_score(y_train,y_pred))
+# print("auc_test: ",np.mean(auc_tests))
+# print("auc_train: ",np.mean(auc_trains))
+# print("best auc_test: ",np.max(auc_tests))
+# print("best auc_train: ",np.max(auc_trains))
+# print("index_val: ",index_vals[np.argmax(auc_tests)])
+# index_val_best=index_vals[np.argmax(auc_tests)]
+# X_val_best=X_val.iloc[index_val_best]
+# y_val_best=y_val.iloc[index_val_best]
+# df_val_best=df_val_get.iloc[index_val_best]
+# csv_path="correct_data1.csv"
+# if os.path.exists(csv_path):
+#     data=pd.read_csv(csv_path)
+#     data=pd.concat([data,df_val_best],axis=0)
+#     #drop duplicate
+#     data.drop_duplicates(inplace=True)
+#     data.to_csv(csv_path,index=False)
+# else:
+#     df_val_best.to_csv(csv_path,index=False)
     

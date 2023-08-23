@@ -48,6 +48,8 @@ class RawDataProcessor:
     def process_raw_data(prob_config: ProblemConfig):
         logging.info("start process_raw_data")
         training_data = pd.read_parquet(prob_config.raw_data_path)
+        # drop duplicate
+        training_data = training_data.drop_duplicates()
         training_data, category_index = RawDataProcessor.build_category_features(
             training_data, prob_config.categorical_cols
         )

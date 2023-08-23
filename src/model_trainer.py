@@ -54,7 +54,7 @@ class ModelTrainer:
     def get_model(model_name):
         dict_model = {
             #"xgb": xgb.XGBClassifier(max_depth=10,learning_rate=0.01,sampling_method="gradient_based",n_estimators=1000,objective="binary:logistic",booster="gbtree",random_state=42),
-            "xgb":xgb.XGBClassifier(random_state=np.random.randint(0,1000),max_depth=10),
+            "xgb":xgb.XGBClassifier(random_state=np.random.randint(0,1000),n_estimators=200,max_depth=7),
             "svm": SVC(probability=True,C=1.0, kernel='rbf', degree=3, gamma='scale', coef0=0.0, shrinking=True),
             "knn": KNeighborsClassifier(n_neighbors=20),
             "random_forest": RandomForestClassifier(),
@@ -295,10 +295,11 @@ class ModelTrainer:
             test_y=encoder_label.transform(test_y)
             test_x=robust_scaler.transform(test_x) 
         if prob_config.phase_id=="phase-3" and prob_config.prob_id=="prob-1":
-            df=pd.read_csv("data/raw_train.csv")
-            df=df.sort_values(by=['prob'],ascending=False)
-            df=df.drop(columns=["prob","label_model"])
+            #df=pd.read_csv("data/raw_train.csv")
+            # df=df.sort_values(by=['prob'],ascending=False)
+            # df=df.drop(columns=["prob","label_model"])
             #drop duplicate
+            df=pd.read_parquet("data/raw_data/phase-2/prob-1/raw_train.parquet")
             df=df.drop_duplicates()
             X=df.drop(columns=["label"])
             y=df["label"]
@@ -337,9 +338,9 @@ class ModelTrainer:
                 df_capture=pd.read_csv(os.path.join("data","data_phase3_prob1_model-1.csv"))
                 
                 #shuffe data
-                #df_capture=df_capture.sample(frac=1)
+                df_capture=df_capture.sample(frac=1)
                 #sort prob
-                df_capture=df_capture.sort_values(by=['prob'],ascending=False)
+                #df_capture=df_capture.sort_values(by=['prob'],ascending=False)
                 #batch_id,label_model,prob
                 if "batch_id" in df_capture.columns:
                     df_capture=df_capture.drop(columns=["batch_id"])
@@ -353,7 +354,7 @@ class ModelTrainer:
                 #print(captured_y
                 #captured_x=captured_x.to_numpy()
                 #captured_y=captured_y.to_numpy()
-                num_index=int(len(captured_x)*0.99)
+                num_index=int(len(captured_x)*0.7)
                 
                 #print(captured_x)
                 captured_x=RawDataProcessor.apply_category_features(
@@ -390,6 +391,8 @@ class ModelTrainer:
             
         if prob_config.phase_id=="phase-3" and prob_config.prob_id=="prob-2":
             add_df=pd.read_parquet("data/raw_data/phase-2/prob-2/raw_train.parquet")
+            #drop duplicate
+            add_df=add_df.drop_duplicates()
             add_x=add_df.drop(columns=["label"])
             add_y=add_df["label"]
             add_x=RawDataProcessor.apply_category_features(
@@ -397,7 +400,7 @@ class ModelTrainer:
                     categorical_cols=prob_config.categorical_cols,
                     category_index=RawDataProcessor.load_category_index(prob_config)
                 )
-            add_x_train, add_x_test, add_y_train, add_y_test = train_test_split(add_x, add_y, test_size=0.5, random_state=42)
+            add_x_train, add_x_test, add_y_train, add_y_test = train_test_split(add_x, add_y, test_size=0.3, random_state=42)
             
             train_x, train_y = RawDataProcessor.load_train_data(prob_config)
             #train_x=pd.concat([train_x,add_x],axis=0)
@@ -453,8 +456,9 @@ class ModelTrainer:
                 )
                 captured_x=captured_x.to_numpy()
                 captured_y=captured_y.to_numpy()
-                captured_x,test_new_x=captured_x[:7000],captured_x[5000:]
-                captured_y,test_new_y=captured_y[:7000],captured_y[5000:]
+                num_index=int(len(captured_x)*0.95)
+                captured_x,test_new_x=captured_x[:num_index],captured_x[num_index:]
+                captured_y,test_new_y=captured_y[:num_index],captured_y[num_index:]
                 
                 
                 captured_y=encoder_label.transform(captured_y)

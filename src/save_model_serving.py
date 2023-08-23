@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 import bentoml
 import mlflow
 import pandas as pd
+#import daal4py as d4p
 from mlflow.models.signature import ModelSignature
 from pydantic import BaseModel
 import os
@@ -17,8 +18,23 @@ def save_scaler():
     scaler_prob2="features/robust_scaler_phase-3_prob-2.pkl"
     scaler_prob1 = pickle.load(open(scaler_prob1, "rb"))
     scaler_prob2 = pickle.load(open(scaler_prob2, "rb"))
-    bentoml.sklearn.save("scaler_prob1", scaler_prob1)
-    bentoml.sklearn.save("scaler_prob2", scaler_prob2)
+    bentoml.sklearn.save_model("scaler_phase-3_prob-1",
+                        scaler_prob1,
+                        signatures={
+                            "transform": {
+                                "batchable": True,
+                                "batch_dim": 0,
+                                        },
+                        })
+    bentoml.sklearn.save_model("scaler_phase-3_prob-2",
+                        scaler_prob2,
+                        signatures={
+                               "transform": {
+                                    "batchable": True,
+                                    "transform": 0,
+                                        },  
+                        }) 
+    #bentoml.sklearn.save("scaler_prob2", scaler_prob2)
     print("save scaler success")
 def save_model(config):
 
@@ -122,6 +138,6 @@ if __name__ == "__main__":
     config_phase3_prob2 = yaml.safe_load(open(model_phase3_prob2))
     bentoml_model1=save_model(config_phase3_prob1)
     bentoml_model2=save_model(config_phase3_prob2)
-    #save_scaler()
+    save_scaler()
     print("save model bento service success")
 
